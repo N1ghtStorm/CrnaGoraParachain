@@ -29,15 +29,15 @@ use xcm_builder::{
 };
 use xcm_executor::{traits::ShouldExecute, XcmExecutor};
 
-pub const SORA_PARA_ID: u32 = 2000;
-// pub const XOR_KEY: &[u8] = b"XOR";
-// pub const PSWAP_KEY: &[u8] = b"PSWAP";
-// pub const VAL_KEY: &[u8] = b"VAL";
-// pub const XSTUSD_KEY: &[u8] = b"XSTUSD";
-pub const XOR_KEY: &[u8] = &hex_literal::hex!("0020");
-pub const PSWAP_KEY: &[u8] = &hex_literal::hex!("0030");
-pub const VAL_KEY: &[u8] = &hex_literal::hex!("0040");
-pub const XSTUSD_KEY: &[u8] = &hex_literal::hex!("0050");
+pub const SORA_PARA_ID: u32 = 2001;
+pub const XOR_KEY: &[u8] = b"XOR";
+pub const PSWAP_KEY: &[u8] = b"PSWAP";
+pub const VAL_KEY: &[u8] = b"VAL";
+pub const XSTUSD_KEY: &[u8] = b"XSTUSD";
+// pub const XOR_KEY: &[u8] = &hex_literal::hex!("0020");
+// pub const PSWAP_KEY: &[u8] = &hex_literal::hex!("0030");
+// pub const VAL_KEY: &[u8] = &hex_literal::hex!("0040");
+// pub const XSTUSD_KEY: &[u8] = &hex_literal::hex!("0050");
 
 pub fn get_para_key_multilocation(para_id: u32, key: Vec<u8>) -> Option<MultiLocation> {
 	Some(MultiLocation::new(1, X2(Parachain(para_id), GeneralKey(key.to_vec()))))
@@ -70,6 +70,11 @@ impl sp_runtime::traits::Convert<CurrencyId, Option<MultiLocation>> for Currency
 
 impl sp_runtime::traits::Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
 	fn convert(multilocation: MultiLocation) -> Option<CurrencyId> {
+		log::trace!(
+			target: "xcm",
+			"================== MultiLocation : {:?} =====================",
+			multilocation
+		);
 		if multilocation == MultiLocation::parent() {
 			return Some(CurrencyId::KSM);
 		}
@@ -88,10 +93,10 @@ impl sp_runtime::traits::Convert<MultiLocation, Option<CurrencyId>> for Currency
 				},
 				_ => None,
 			},
-			// MultiLocation { parents, interior } if parents == 0 => match interior {
-			// 	X1(GeneralKey(k)) if k == a => Some(CurrencyId::XSTUSD),
-			// 	_ => None,
-			// },
+			MultiLocation { parents, interior } if parents == 0 => match interior {
+				X1(GeneralKey(k)) if k == XOR_KEY => Some(CurrencyId::SoraNative(SoraNativeAssets::XOR)),
+				_ => None,
+			},
 			_ => None,
 		}
 	}
@@ -99,6 +104,11 @@ impl sp_runtime::traits::Convert<MultiLocation, Option<CurrencyId>> for Currency
 
 impl sp_runtime::traits::Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
 	fn convert(a: MultiAsset) -> Option<CurrencyId> {
+		log::trace!(
+			target: "xcm",
+			"============ MultiAsset : {:?} ====================",
+			a
+		);
 		if let MultiAsset { fun: Fungible(_), id: Concrete(id) } = a {
 			Self::convert(id)
 		} else {
